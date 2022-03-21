@@ -41,7 +41,7 @@ func (o tagOptions) Contains(optionName string) bool {
 	return false
 }
 
-func getJSONFieldName(tag string) (jsonName string, ok bool) {
+func GetJSONFieldName(tag string) (jsonName string, ok bool) {
 	if len(tag) == 0 {
 		return
 	}

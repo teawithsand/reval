@@ -63,10 +63,13 @@ type FieldOptions struct {
 	Override bool // if true, and field with same name is set then overrides previous definiton
 }
 
+// FieldProcessor decides how field should be processed.
+type FieldProcessor func(field reflect.StructField, path []int) (options FieldOptions, err error)
+
 type Comptuer struct {
 	// Fallbacks to processor, which embeds all anonmous fields and sets name to field name.
 	// Note: path parameter may not be modified by this function.
-	FieldProcessor func(field reflect.StructField, path []int) (options FieldOptions, err error)
+	FieldProcessor FieldProcessor
 
 	// Descriptor cache for each type.
 	// Used if not nil.
