@@ -56,11 +56,11 @@ type Descriptor struct {
 type FieldOptions struct {
 	Skip bool // If true, field is skipped. Ignores all other settings.
 
-	Embed bool
+	Embed bool // If true, and type is struct, then all fields from child structs are embedded as if they were in parent.
 	Name  string
 	Meta  interface{}
 
-	Override bool // if true, and field with same name is set then overrides previous definiton
+	Override bool // if true, and field with same name is set then overrides previous definiton in case it was set.
 }
 
 // FieldProcessor decides how field should be processed.
