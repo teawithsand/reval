@@ -1,4 +1,4 @@
-package reval
+package jsonutil
 
 import "strings"
 

@@ -3,6 +3,7 @@ package stdesc
 import (
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 func copyIndices(data []int) []int {
@@ -66,11 +67,23 @@ type Comptuer struct {
 	// Fallbacks to processor, which embeds all anonmous fields and sets name to field name.
 	// Note: path parameter may not be modified by this function.
 	FieldProcessor func(field reflect.StructField, path []int) (options FieldOptions, err error)
+
+	// Descriptor cache for each type.
+	// Used if not nil.
+	Cache *sync.Map
 }
 
 func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Descriptor) (err error) {
 	if ty.Kind() == reflect.Pointer {
 		ty = ty.Elem()
+	}
+
+	if c.Cache != nil {
+		cachedDescriptor, ok := c.Cache.Load(ty)
+		if ok {
+			*desc = cachedDescriptor.(Descriptor)
+			return
+		}
 	}
 
 	fp := c.FieldProcessor
@@ -145,6 +158,10 @@ func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Des
 		}
 
 		path = path[:len(path)-1]
+	}
+
+	if c.Cache != nil {
+		c.Cache.Store(ty, *desc)
 	}
 
 	return

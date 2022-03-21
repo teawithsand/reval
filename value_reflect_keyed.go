@@ -2,93 +2,105 @@ package reval
 
 import (
 	"reflect"
+
+	"github.com/teawithsand/reval/stdesc"
 )
 
-// reflectKeyedValue wraps any map or struct into value.
-type reflectKeyedValue struct {
-	val     reflect.Value
-	wrapper Wrapper
+// reflectStructValue wraps any map or struct into value.
+type reflectStructValue struct {
+	descriptor stdesc.Descriptor
+	val        reflect.Value
+	wrapper    Wrapper
 }
 
-var _ KeyedValue = &reflectKeyedValue{}
-
-func (rkv *reflectKeyedValue) translareKey(key interface{}) (res interface{}, err error) {
-	tw, ok := rkv.wrapper.(FieldAliasWrapper)
-	if !ok {
-		res = key
-		return
-	}
-	res, err = tw.GetAlias(rkv, key)
-	return
-}
+var _ KeyedValue = &reflectStructValue{}
 
 // returns element of pointer if any.
-func (rkv *reflectKeyedValue) getInnerValue() (res reflect.Value) {
+func (rkv *reflectStructValue) getInnerValue() (res reflect.Value) {
 	res = rkv.val
 	for res.Kind() == reflect.Ptr {
+		if res.IsNil() {
+			return reflect.Value{}
+		}
 		res = res.Elem()
 	}
 	return
 }
 
-func (rkv *reflectKeyedValue) Raw() interface{} {
+func (rkv *reflectStructValue) Raw() interface{} {
 	return rkv.val.Interface()
-}
-func (rkv *reflectKeyedValue) innerGetReflectField(key interface{}) (v reflect.Value, err error) {
-	iv := rkv.getInnerValue()
-	key, err = rkv.translareKey(key)
-	if err != nil {
-		return
-	}
-	v = getMapOrStructField(iv, key)
-	return
 }
 
 // Panics when no such field.
 // Must not return nil in that case.
 //
 // Returns nil value if field was not found.
-func (rkv *reflectKeyedValue) GetField(key interface{}) (res Value, err error) {
-	v, err := rkv.innerGetReflectField(key)
-	if err != nil {
-		return
-	}
+func (rkv *reflectStructValue) GetField(key interface{}) (res Value, err error) {
+	v := rkv.getInnerValue()
+
 	if isReflectZero(v) {
+		err = ErrNilStruct
 		return
 	} else {
-		res, err = rkv.wrapper.Wrap(v.Interface())
+		stringKey, ok := key.(string)
+		if !ok {
+			err = ErrNoField
+			return
+		}
+
+		field, ok := rkv.descriptor.NameToField[stringKey]
+		if !ok {
+			err = ErrNoField
+			return
+		}
+
+		rawResult := field.MustGet(v)
+
+		if isReflectZero(rawResult) {
+			err = ErrNilInnerStruct
+			return
+		}
+
+		res, err = rkv.wrapper.Wrap(rawResult.Interface())
 		return
 	}
-
 }
 
 // Returns true if given field exists in value, false otherwise.
-func (rkv *reflectKeyedValue) HasField(key interface{}) bool {
-	f, err := rkv.innerGetReflectField(key)
-	if err != nil {
+func (rkv *reflectStructValue) HasField(key interface{}) bool {
+	v := rkv.getInnerValue()
+
+	if isReflectZero(v) {
 		return false
+	} else {
+		stringKey, ok := key.(string)
+		if !ok {
+			return false
+		}
+
+		field, ok := rkv.descriptor.NameToField[stringKey]
+		if !ok {
+			return false
+		}
+
+		rawResult := field.MustGet(v)
+
+		if isReflectZero(rawResult) {
+			return false
+		}
+
+		return true
 	}
-	return !isReflectZero(f)
 }
 
 // Iteration must stop when non-nil error is returned.
 // This error must be returned from top-level function.
 //
 // Note: field name yielded here is not value but primitive go type, like string or int.
-func (rkv *reflectKeyedValue) ListFields(recv func(name interface{}) (err error)) (err error) {
-	iv := rkv.getInnerValue()
-
-	if iv.Kind() == reflect.Map {
-		for _, k := range iv.MapKeys() {
-			err = recv(k.Interface())
-			if err != nil {
-				return
-			}
-		}
-	} else {
-		sz := iv.NumField()
-		for i := 0; i < sz; i++ {
-			err = recv(iv.Field(i).Interface())
+func (rkv *reflectStructValue) ListFields(recv func(name interface{}) (err error)) (err error) {
+	for _, f := range rkv.descriptor.NameToField {
+		if rkv.HasField(f.Name) {
+			err = recv(f.Name)
 			if err != nil {
 				return
 			}
@@ -99,66 +111,6 @@ func (rkv *reflectKeyedValue) ListFields(recv func(name interface{}) (err error)
 }
 
 // Returns number of fields.
-func (rkv *reflectKeyedValue) Len() int {
-	iv := rkv.getInnerValue()
-
-	if iv.Kind() == reflect.Map {
-		return iv.Len()
-	} else {
-		return iv.NumField()
-	}
-}
-
-type mutableReflectKeyedValue struct {
-	reflectKeyedValue
-}
-
-func (mrkv *mutableReflectKeyedValue) IsAssignable(key interface{}, value Value) bool {
-	if !mrkv.HasField(key) {
-		return false
-	}
-
-	iv := mrkv.getInnerValue()
-	if iv.Kind() == reflect.Map {
-		return isAssignable(iv.Type().Elem(), value)
-	} else {
-		ift, err := mrkv.reflectKeyedValue.innerGetReflectField(key)
-		if err != nil {
-			return false
-		}
-		fieldType := ift.Type()
-		return isAssignable(fieldType, value)
-	}
-}
-
-func (mrkv *mutableReflectKeyedValue) SetField(key interface{}, value Value) (err error) {
-	if !mrkv.HasField(key) {
-		err = &NoFieldError{
-			Value: mrkv,
-			Field: key,
-		}
-		return
-	}
-
-	iv := mrkv.getInnerValue()
-	if iv.Kind() == reflect.Map {
-		err = assignMap(iv, key, value)
-		if err != nil {
-			return
-		}
-		return
-	} else {
-		var fieldRef reflect.Value
-		fieldRef, err = mrkv.reflectKeyedValue.innerGetReflectField(key)
-		if err != nil {
-			return
-		}
-
-		err = assignValue(fieldRef, value)
-		if err != nil {
-			return
-		}
-	}
-
-	return
+func (rkv *reflectStructValue) Len() int {
+	return len(rkv.descriptor.NameToField)
 }

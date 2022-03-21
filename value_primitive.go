@@ -18,6 +18,9 @@ func (pv *PrimitiveValue) Raw() interface{} {
 func (pv *PrimitiveValue) RawDereferenced() interface{} {
 	v := reflect.ValueOf(pv.Val)
 	for v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			return nil
+		}
 		v = v.Elem()
 	}
 

@@ -27,17 +27,6 @@ type KeyedValue interface {
 	Len() int
 }
 
-type MutableKeyedValue interface {
-	KeyedValue
-
-	// Returns true, if SetField with these parameters can be called without returning error.
-	IsAssignable(name interface{}, value Value) bool
-
-	// Panics when no such field.
-	// Retruns error if not assignable.
-	SetField(name interface{}, value Value) (err error)
-}
-
 type ListValue interface {
 	Value
 
@@ -46,14 +35,4 @@ type ListValue interface {
 
 	// Returns number of elements.
 	Len() int
-}
-
-type MutableListValue interface {
-	ListValue
-
-	// Returns true, if SetField with these parameters can be called without returning error.
-	IsAssignable(value Value) bool
-
-	// Panics if index is < 0 or out of bounds.
-	SetIndex(i int, value Value) (err error)
 }

@@ -1,12 +1,6 @@
 package reval_test
 
-import (
-	"fmt"
-	"reflect"
-	"testing"
-
-	"github.com/teawithsand/reval"
-)
+/*
 
 type someStruct struct {
 	A int
@@ -177,3 +171,5 @@ func TestCanOperateOnListValue_Slice(t *testing.T) {
 		}
 	}
 }
+
+*/
