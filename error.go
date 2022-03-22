@@ -8,4 +8,6 @@ var ErrNotStringable = errors.New("reval: specified value can't be converted to 
 var ErrNoField = errors.New("reval: such field does not exist on given value")
 var ErrCantWrap = errors.New("reval: given value type can't be wrapped")
 var ErrNilStruct = errors.New("reval: can't obtain struct field from nil pointer struct")
-var ErrNilInnerStruct = errors.New("reval:  can't obtain struct field: embedded pointer to structure is nil")
+var ErrNilInnerStruct = errors.New("reval: can't obtain struct field: embedded pointer to structure is nil")
+
+var ErrExpectFiled = errors.New("reval: some kind of expect filed")

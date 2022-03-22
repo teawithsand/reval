@@ -41,7 +41,7 @@ func (rmv *reflectMapValue) GetField(key interface{}) (res Value, err error) {
 		return
 	}
 
-	res, err = rmv.wrapper.Wrap(raw)
+	res, err = rmv.wrapper.Wrap(raw.Interface())
 	if err != nil {
 		return
 	}
@@ -55,7 +55,7 @@ func (rmv *reflectMapValue) HasField(name interface{}) bool {
 		return false
 	}
 
-	return isReflectZero(v.MapIndex(reflect.ValueOf(name)))
+	return !isReflectZero(v.MapIndex(reflect.ValueOf(name)))
 }
 
 func (rmv *reflectMapValue) ListFields(recv func(name interface{}) (err error)) (err error) {

@@ -11,6 +11,14 @@ type Wrapper interface {
 	Wrap(v interface{}) (res Value, err error)
 }
 
+func MustWrap(res Value, err error) Value {
+	if err != nil {
+		panic(err)
+	}
+
+	return res
+}
+
 // TODO(teawithsand): implement support for embedded structures in JSON-like manner
 
 type DefaultWrapper struct {
@@ -24,6 +32,12 @@ func (dw *DefaultWrapper) Wrap(data interface{}) (v Value, err error) {
 	if data == nil {
 		v = nil
 		return
+	}
+
+	var c *stdesc.Comptuer
+	c = dw.DescriptorComputer
+	if c == nil {
+		c = &stdesc.Comptuer{}
 	}
 
 	switch tdata := data.(type) {
@@ -96,7 +110,7 @@ func (dw *DefaultWrapper) Wrap(data interface{}) (v Value, err error) {
 			return
 		} else if innerRefVal.Kind() == reflect.Struct {
 			var descriptor stdesc.Descriptor
-			descriptor, err = dw.DescriptorComputer.ComputeDescriptor(refVal.Type())
+			descriptor, err = c.ComputeDescriptor(refVal.Type())
 			if err != nil {
 				return
 			}

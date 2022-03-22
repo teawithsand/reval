@@ -1,16 +1,33 @@
 package reval_test
 
-/*
+import (
+	"fmt"
+	"reflect"
+	"testing"
 
-type someStruct struct {
-	A int
-	B *int
-	C string
+	"github.com/teawithsand/reval"
+)
+
+type C struct {
+	F int
+}
+
+type B struct {
+	*C
+	N int
+}
+
+type A struct {
+	B
+	P int
+	Q string
 }
 
 func TestCanWrapValue(t *testing.T) {
 	assert := func(v interface{}) {
-		wrapped, err := reval.Wrap(v)
+		dw := reval.DefaultWrapper{}
+
+		wrapped, err := dw.Wrap(v)
 		if err != nil {
 			t.Error(err, fmt.Sprintf("%T", v))
 			return
@@ -34,8 +51,10 @@ func TestCanWrapValue(t *testing.T) {
 	assert(int(0))
 	assert(string("asdf"))
 	assert(float64(0))
-	assert(someStruct{})
-	assert(&someStruct{})
+	assert(float32(0))
+	assert(rune('a'))
+	assert(A{})
+	assert(&A{})
 	assert([2]int{1, 2})
 	assert(make([]int, 3))
 	assert(make(map[int]int))
@@ -47,129 +66,71 @@ func TestCanWrapValue(t *testing.T) {
 	assert(&iva)
 }
 
-func TestCanOperateOnStructValue_WithStruct(t *testing.T) {
-	b := 3
-	v, err := reval.Wrap(&someStruct{
-		A: 2,
-		B: &b,
-		C: "asdf",
-	})
-	if err != nil {
-		t.Error(err)
-	}
-	mkv := v.(reval.MutableKeyedValue)
+func Test_Struct_HasGetField(t *testing.T) {
+	dw := reval.DefaultWrapper{}
 
-	checkBValOk := func(b int) {
-		bField, err := mkv.GetField("B")
-		if err != nil {
-			t.Error(err)
-			return
-		}
-		if bField.Raw() != b {
-			t.Error("invalid value stored in b=", bField.Raw())
-			return
-		}
-	}
-	checkBValOk(b)
+	value := reval.MustWrap(dw.Wrap(A{
+		B: B{
+			C: &C{
+				F: 42,
+			},
+		},
+	})).(reval.KeyedValue)
 
-	nv := 4
-	err = mkv.SetField("B", reval.MustWrap(&nv))
+	v, err := value.GetField("F")
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	checkBValOk(nv)
-
-	nv = 5
-	err = mkv.SetField("B", reval.MustWrap(nv))
-	if err != nil {
-		t.Error(err)
+	if v.Raw() != 42 {
+		t.Error("expected different value")
+		return
+	}
+	if v.(*reval.PrimitiveValue).RawDereferenced() != 42 {
+		t.Error("expected different value")
 		return
 	}
 
-	checkBValOk(nv)
+	if value.HasField("C") {
+		t.Error("expected false")
+		return
+	}
 
-	err = mkv.SetField("C", reval.MustWrap("asdf"))
-	if err != nil {
-		t.Error(err)
+	if !value.HasField("Q") {
+		t.Error("expected true")
+		return
+	}
+
+	if value.Len() != 4 {
+		t.Error("invalid length")
 		return
 	}
 }
 
-func TestCanOperateOnStructValue_WithMap(t *testing.T) {
-	b := 3
-	v, err := reval.Wrap(&map[string]interface{}{
-		"A": 2,
-		"B": &b,
-		"C": "asdf",
-	})
-	if err != nil {
-		t.Error(err)
-	}
-	mkv := v.(reval.MutableKeyedValue)
+func Test_Map_GetField(t *testing.T) {
+	dw := reval.DefaultWrapper{}
+	value := reval.MustWrap(dw.Wrap(map[int]int{
+		2: 3,
+		4: 5,
+	})).(reval.KeyedValue)
 
-	checkBValOk := func(b int) {
-		bField, err := mkv.GetField("B")
-		if err != nil {
-			t.Error(err)
+	assert := func(x bool, msg string) {
+		if t.Failed() {
 			return
 		}
-		if bField.Raw() != b {
-			t.Error("invalid reval stored in b=", bField.Raw())
-			return
+
+		if !x {
+			t.Error("assert filed", msg)
 		}
 	}
-	checkBValOk(b)
 
-	nv := 4
-	err = mkv.SetField("B", reval.MustWrap(&nv))
+	assert(value.Len() == 2, "invalid len")
+	assert(value.HasField(2), "invalid has field")
+	assert(!value.HasField(42), "invalid has field 2")
+	res, err := value.GetField(2)
 	if err != nil {
 		t.Error(err)
 		return
 	}
-	checkBValOk(nv)
-
-	nv = 5
-	err = mkv.SetField("B", reval.MustWrap(nv))
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	checkBValOk(nv)
-
-	err = mkv.SetField("C", reval.MustWrap("asdf"))
-	if err != nil {
-		t.Error(err)
-		return
-	}
+	assert(res.Raw() == 3, "invalid value")
 }
-
-func TestCanOperateOnListValue_Slice(t *testing.T) {
-	v, err := reval.Wrap([]int{1, 2, 3})
-	if err != nil {
-		t.Error(err)
-	}
-	mlv := v.(reval.MutableListValue)
-
-	err = mlv.SetIndex(0, reval.MustWrap(4))
-	if err != nil {
-		t.Error(err)
-		return
-	}
-
-	{
-		v, err := mlv.GetIndex(0)
-		if err != nil {
-			t.Error(err)
-			return
-		}
-
-		if v.Raw() != int(4) {
-			t.Error("expected reval to be equal to newly set")
-			return
-		}
-	}
-}
-
-*/

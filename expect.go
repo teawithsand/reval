@@ -1,11 +1,5 @@
 package reval
 
-import (
-	"errors"
-)
-
-var ErrExpectFiled = errors.New("reval: some kind of expect filed")
-
 func ExpectKeyedValueField(kv Value, fieldName interface{}, required bool) (value Value, err error) {
 	skv, ok := kv.(KeyedValue)
 	if !ok {

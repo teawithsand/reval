@@ -170,6 +170,8 @@ func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Des
 	return
 }
 
+// Note: returned descriptor should be deep copied before modifying
+// since it may be stored in cache.
 func (c *Comptuer) ComputeDescriptor(ty reflect.Type) (desc Descriptor, err error) {
 	desc.NameToField = map[string]Field{}
 
