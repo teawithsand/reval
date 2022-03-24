@@ -1,6 +1,7 @@
 package reval
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/teawithsand/reval/stdesc"
@@ -110,7 +111,7 @@ func (dw *DefaultWrapper) Wrap(data interface{}) (v Value, err error) {
 			return
 		} else if innerRefVal.Kind() == reflect.Struct {
 			var descriptor stdesc.Descriptor
-			descriptor, err = c.ComputeDescriptor(refVal.Type())
+			descriptor, err = c.ComputeDescriptor(context.Background(), refVal.Type())
 			if err != nil {
 				return
 			}

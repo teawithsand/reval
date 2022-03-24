@@ -1,6 +1,7 @@
 package stdesc
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -63,20 +64,54 @@ type FieldOptions struct {
 	Override bool // if true, and field with same name is set then overrides previous definiton in case it was set.
 }
 
+type PendingFiled struct {
+	Field reflect.StructField
+	Path  []int
+}
+
 // FieldProcessor decides how field should be processed.
-type FieldProcessor func(field reflect.StructField, path []int) (options FieldOptions, err error)
+type FieldProcessor interface {
+	ProcessField(pf PendingFiled) (options FieldOptions, err error)
+}
+
+type FieldProcessorFunc func(pf PendingFiled) (options FieldOptions, err error)
+
+func (f FieldProcessorFunc) ProcessField(pf PendingFiled) (options FieldOptions, err error) {
+	return f(pf)
+}
+
+func (f FieldProcessorFunc) MakeFieldProcessor(ctx context.Context, ty reflect.Type) (fp FieldProcessor, err error) {
+	fp = f
+	return
+}
+
+type FieldProcessorFactory interface {
+	MakeFieldProcessor(ctx context.Context, ty reflect.Type) (fp FieldProcessor, err error)
+}
+
+type FieldProcessorFactoryFunc func(ctx context.Context, ty reflect.Type) (fp FieldProcessor, err error)
+
+func (f FieldProcessorFactoryFunc) MakeFieldProcessor(ctx context.Context, ty reflect.Type) (fp FieldProcessor, err error) {
+	return f(ctx, ty)
+}
 
 type Comptuer struct {
 	// Fallbacks to processor, which embeds all anonmous fields and sets name to field name.
 	// Note: path parameter may not be modified by this function.
-	FieldProcessor FieldProcessor
+	FieldProcessorFactory FieldProcessorFactory
 
 	// Descriptor cache for each type.
 	// Used if not nil.
 	Cache *sync.Map
 }
 
-func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Descriptor) (err error) {
+func (c *Comptuer) innerComputeDescriptor(
+	ctx context.Context,
+	fp FieldProcessor,
+	path []int,
+	ty reflect.Type,
+	desc *Descriptor,
+) (err error) {
 	if ty.Kind() == reflect.Pointer {
 		ty = ty.Elem()
 	}
@@ -85,16 +120,6 @@ func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Des
 		cachedDescriptor, ok := c.Cache.Load(ty)
 		if ok {
 			*desc = cachedDescriptor.(Descriptor)
-			return
-		}
-	}
-
-	fp := c.FieldProcessor
-
-	if fp == nil {
-		fp = func(field reflect.StructField, path []int) (options FieldOptions, err error) {
-			options.Name = field.Name
-			options.Embed = field.Anonymous && (field.Type.Kind() == reflect.Struct || (field.Type.Kind() == reflect.Ptr && field.Type.Elem().Kind() == reflect.Struct))
 			return
 		}
 	}
@@ -114,7 +139,10 @@ func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Des
 		structField := ty.Field(i)
 
 		var options FieldOptions
-		options, err = fp(structField, path)
+		options, err = fp.ProcessField(PendingFiled{
+			Field: structField,
+			Path:  path,
+		})
 		if err != nil {
 			return
 		}
@@ -155,7 +183,7 @@ func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Des
 	for _, ef := range embedFields {
 		path = append(path, ef.index)
 
-		err = c.innerComputeDescriptor(path, ef.sf.Type, desc)
+		err = c.innerComputeDescriptor(ctx, fp, path, ef.sf.Type, desc)
 		if err != nil {
 			return
 		}
@@ -172,10 +200,26 @@ func (c *Comptuer) innerComputeDescriptor(path []int, ty reflect.Type, desc *Des
 
 // Note: returned descriptor should be deep copied before modifying
 // since it may be stored in cache.
-func (c *Comptuer) ComputeDescriptor(ty reflect.Type) (desc Descriptor, err error) {
+func (c *Comptuer) ComputeDescriptor(ctx context.Context, ty reflect.Type) (desc Descriptor, err error) {
 	desc.NameToField = map[string]Field{}
 
-	err = c.innerComputeDescriptor([]int{}, ty, &desc)
+	var fp FieldProcessor
+	if c.FieldProcessorFactory != nil {
+		fp, err = c.FieldProcessorFactory.MakeFieldProcessor(ctx, ty)
+		if err != nil {
+			return
+		}
+	}
+
+	if fp == nil {
+		fp = FieldProcessorFunc(func(pf PendingFiled) (options FieldOptions, err error) {
+			options.Name = pf.Field.Name
+			options.Embed = pf.Field.Anonymous && (pf.Field.Type.Kind() == reflect.Struct || (pf.Field.Type.Kind() == reflect.Ptr && pf.Field.Type.Elem().Kind() == reflect.Struct))
+			return
+		})
+	}
+
+	err = c.innerComputeDescriptor(ctx, fp, []int{}, ty, &desc)
 	if err != nil {
 		return
 	}

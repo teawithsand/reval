@@ -1,6 +1,7 @@
 package stdesc_test
 
 import (
+	"context"
 	"reflect"
 	"sort"
 	"testing"
@@ -23,16 +24,18 @@ type A struct {
 	Q string
 }
 
+var fp = stdesc.FieldProcessorFunc(func(pf stdesc.PendingFiled) (options stdesc.FieldOptions, err error) {
+	options.Name = pf.Field.Name
+	options.Embed = pf.Field.Anonymous
+	return
+})
+
 func TestSimpleStruct(t *testing.T) {
 	c := stdesc.Comptuer{
-		FieldProcessor: func(field reflect.StructField, path []int) (options stdesc.FieldOptions, err error) {
-			options.Name = field.Name
-			options.Embed = field.Anonymous
-			return
-		},
+		FieldProcessorFactory: fp,
 	}
 
-	desc, err := c.ComputeDescriptor(reflect.TypeOf(A{}))
+	desc, err := c.ComputeDescriptor(context.Background(), reflect.TypeOf(A{}))
 	if err != nil {
 		t.Error(err)
 		return
@@ -62,14 +65,10 @@ func Test_FieldGet(t *testing.T) {
 	}
 
 	c := stdesc.Comptuer{
-		FieldProcessor: func(field reflect.StructField, path []int) (options stdesc.FieldOptions, err error) {
-			options.Name = field.Name
-			options.Embed = field.Anonymous
-			return
-		},
+		FieldProcessorFactory: fp,
 	}
 
-	desc, err := c.ComputeDescriptor(reflect.TypeOf(A{}))
+	desc, err := c.ComputeDescriptor(context.Background(), reflect.TypeOf(A{}))
 	if err != nil {
 		t.Error(err)
 		return
@@ -101,14 +100,10 @@ func Test_FieldSet(t *testing.T) {
 	}
 
 	c := stdesc.Comptuer{
-		FieldProcessor: func(field reflect.StructField, path []int) (options stdesc.FieldOptions, err error) {
-			options.Name = field.Name
-			options.Embed = field.Anonymous
-			return
-		},
+		FieldProcessorFactory: fp,
 	}
 
-	desc, err := c.ComputeDescriptor(reflect.TypeOf(A{}))
+	desc, err := c.ComputeDescriptor(context.Background(), reflect.TypeOf(A{}))
 	if err != nil {
 		t.Error(err)
 		return
