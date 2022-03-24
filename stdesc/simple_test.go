@@ -124,7 +124,7 @@ func Test_FieldSet(t *testing.T) {
 		C: &C{},
 	}
 
-	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf(*&addrHack.C))
+	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf(addrHack).Elem().FieldByName("C").Elem())
 	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf(&C{}))
 	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf((*C)(nil)))
 }
