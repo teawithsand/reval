@@ -22,6 +22,8 @@ type A struct {
 	B
 	P int
 	Q string
+
+	CPtr *C
 }
 
 var fp = stdesc.FieldProcessorFunc(func(pf stdesc.PendingFiled) (options stdesc.FieldOptions, err error) {
@@ -48,7 +50,7 @@ func TestSimpleStruct(t *testing.T) {
 
 	sort.Sort(fields)
 
-	if !reflect.DeepEqual([]string{"F", "N", "P", "Q"}, []string(fields)) {
+	if !reflect.DeepEqual([]string{"CPtr", "F", "N", "P", "Q"}, []string(fields)) {
 		t.Error("fields not equal, got: ", fields)
 		return
 	}
@@ -115,4 +117,14 @@ func Test_FieldSet(t *testing.T) {
 		t.Error("expected different value")
 		return
 	}
+
+	ptrField := desc.NameToField["CPtr"]
+
+	addrHack := &B{
+		C: &C{},
+	}
+
+	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf(*&addrHack.C))
+	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf(&C{}))
+	ptrField.MustSet(reflect.ValueOf(d), reflect.ValueOf((*C)(nil)))
 }

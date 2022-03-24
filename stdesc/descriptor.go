@@ -44,7 +44,19 @@ func (f *Field) MustSet(target, v reflect.Value) {
 		target = target.Elem()
 	}
 
-	target.FieldByIndex(f.Path).Set(v)
+	field := target.FieldByIndex(f.Path)
+
+	if v.Type().AssignableTo(field.Type()) {
+		field.Set(v)
+	} else if reflect.PointerTo(v.Type()).AssignableTo(field.Type()) {
+		if v.CanAddr() {
+			field.Set(v.Addr())
+		} else {
+			panic(fmt.Errorf("value of type %s is assignable to type %s but can't take address of value", v.Type(), field.Type()))
+		}
+	} else {
+		panic(fmt.Errorf("value of type %s(nor pointer to it) is not assignable to field type %s", v.Type(), field.Type()))
+	}
 }
 
 type Descriptor struct {
