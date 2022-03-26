@@ -55,7 +55,7 @@ func (f *Field) MustSet(target, v reflect.Value) {
 			panic(fmt.Errorf("value of type %s is assignable to type %s but can't take address of value", v.Type(), field.Type()))
 		}
 	} else {
-		panic(fmt.Errorf("value of type %s(nor pointer to it) is not assignable to field type %s", v.Type(), field.Type()))
+		panic(fmt.Errorf("value of type %s (nor pointer to it) is not assignable to field type %s", v.Type(), field.Type()))
 	}
 }
 
