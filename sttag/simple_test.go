@@ -8,6 +8,20 @@ import (
 	"github.com/teawithsand/reval/sttag"
 )
 
+func FuzzSimpleParseTag(f *testing.F) {
+	f.Add(2, `1,2,three:3,four:4,slice:1,slice:2,tag`)
+	f.Fuzz(func(t *testing.T, cnt int, tag string) {
+		if cnt < 0 {
+			return
+		}
+		opts := sttag.SimpleParseOptions{
+			AnonymousCount: cnt,
+		}
+
+		opts.Parse(tag)
+	})
+}
+
 func TestSimpleParseTag(t *testing.T) {
 	opts := sttag.SimpleParseOptions{
 		AnonymousCount: 2,
