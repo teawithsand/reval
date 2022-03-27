@@ -25,7 +25,7 @@ func MustWrap(res Value, err error) Value {
 type DefaultWrapper struct {
 	// Computer, which will be used in structures in order to compute descriptor for field access.
 	// Fallbacks to default computer if not set.
-	DescriptorComputer *stdesc.Comptuer
+	DescriptorComputer *stdesc.Computer
 }
 
 // Util function, which converts go native type to Value.
@@ -35,10 +35,10 @@ func (dw *DefaultWrapper) Wrap(data interface{}) (v Value, err error) {
 		return
 	}
 
-	var c *stdesc.Comptuer
+	var c *stdesc.Computer
 	c = dw.DescriptorComputer
 	if c == nil {
-		c = &stdesc.Comptuer{}
+		c = &stdesc.Computer{}
 	}
 
 	switch tdata := data.(type) {

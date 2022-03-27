@@ -18,7 +18,7 @@ type Unmarshaler interface {
 
 // defaultUnmarshaler, which loads specified structure from struct tag it's given.
 type defaultUnmarshaler struct {
-	computer *stdesc.Comptuer
+	computer *stdesc.Computer
 }
 
 type defaultUnmarshalerSummary struct {
@@ -28,7 +28,7 @@ type defaultUnmarshalerSummary struct {
 // Unmarshaler, which uses default format.
 func NewDefaultUnmarshaler() *defaultUnmarshaler {
 	return &defaultUnmarshaler{
-		computer: &stdesc.Comptuer{
+		computer: &stdesc.Computer{
 			FieldProcessorFactory: stdesc.FieldProcessorFunc(func(pf stdesc.PendingFiled) (options stdesc.FieldOptions, err error) {
 				options.Name = pf.Field.Name
 				options.Embed = stdesc.IsEmbedField(pf)

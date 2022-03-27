@@ -33,7 +33,7 @@ var fp = stdesc.FieldProcessorFunc(func(pf stdesc.PendingFiled) (options stdesc.
 })
 
 func TestSimpleStruct(t *testing.T) {
-	c := stdesc.Comptuer{
+	c := stdesc.Computer{
 		FieldProcessorFactory: fp,
 	}
 
@@ -66,7 +66,7 @@ func Test_FieldGet(t *testing.T) {
 		},
 	}
 
-	c := stdesc.Comptuer{
+	c := stdesc.Computer{
 		FieldProcessorFactory: fp,
 	}
 
@@ -101,7 +101,7 @@ func Test_FieldSet(t *testing.T) {
 		},
 	}
 
-	c := stdesc.Comptuer{
+	c := stdesc.Computer{
 		FieldProcessorFactory: fp,
 	}
 

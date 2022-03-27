@@ -121,7 +121,7 @@ func (f FieldProcessorFactoryFunc) MakeFieldProcessor(ctx context.Context, ty re
 	return f(ctx, ty)
 }
 
-type Comptuer struct {
+type Computer struct {
 	// Fallbacks to processor, which embeds all anonmous fields and sets name to field name.
 	// Note: path parameter may not be modified by this function.
 	FieldProcessorFactory FieldProcessorFactory
@@ -134,7 +134,7 @@ type Comptuer struct {
 	Cache *sync.Map
 }
 
-func (c *Comptuer) innerComputeDescriptor(
+func (c *Computer) innerComputeDescriptor(
 	ctx context.Context,
 	fp FieldProcessor,
 	path []int,
@@ -230,7 +230,7 @@ func (c *Comptuer) innerComputeDescriptor(
 
 // Note: returned descriptor should be deep copied before modifying
 // since it may be stored in cache.
-func (c *Comptuer) ComputeDescriptor(ctx context.Context, ty reflect.Type) (desc Descriptor, err error) {
+func (c *Computer) ComputeDescriptor(ctx context.Context, ty reflect.Type) (desc Descriptor, err error) {
 	desc.NameToField = map[string]Field{}
 
 	var fp FieldProcessor

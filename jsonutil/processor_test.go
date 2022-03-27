@@ -14,7 +14,7 @@ type A struct {
 
 func TestProcessor(t *testing.T) {
 	dw := reval.DefaultWrapper{
-		DescriptorComputer: &stdesc.Comptuer{
+		DescriptorComputer: &stdesc.Computer{
 			FieldProcessorFactory: stdesc.FieldProcessorFunc(jsonutil.FieldProcesor),
 		},
 	}
