@@ -244,7 +244,7 @@ func (c *Comptuer) ComputeDescriptor(ctx context.Context, ty reflect.Type) (desc
 	if fp == nil {
 		fp = FieldProcessorFunc(func(pf PendingFiled) (options FieldOptions, err error) {
 			options.Name = pf.Field.Name
-			options.Embed = pf.Field.Anonymous && (pf.Field.Type.Kind() == reflect.Struct || (pf.Field.Type.Kind() == reflect.Ptr && pf.Field.Type.Elem().Kind() == reflect.Struct))
+			options.Embed = IsEmbedField(pf)
 			return
 		})
 	}
