@@ -14,6 +14,8 @@ func copyIndices(data []int) []int {
 }
 
 type Field struct {
+	Type reflect.Type // Field type, the most inner one, which can be acessed via get/set
+
 	Name string
 	Path []int // used to access fields via indexes, always at least one element in here
 	Meta interface{}
@@ -64,6 +66,9 @@ type Descriptor struct {
 
 	// also alows listing fields
 	NameToField map[string]Field
+
+	// Comptued summary of descriptor, performed by user code.
+	ComputedSummary interface{}
 }
 
 type FieldOptions struct {
@@ -79,6 +84,15 @@ type FieldOptions struct {
 type PendingFiled struct {
 	Field reflect.StructField
 	Path  []int
+}
+
+type Summarizer interface {
+	SummaryzeDescriptor(ctx context.Context, desc Descriptor) (meta interface{}, err error)
+}
+type SummarizerFunc func(ctx context.Context, desc Descriptor) (meta interface{}, err error)
+
+func (f SummarizerFunc) SummaryzeDescriptor(ctx context.Context, desc Descriptor) (meta interface{}, err error) {
+	return f(ctx, desc)
 }
 
 // FieldProcessor decides how field should be processed.
@@ -111,6 +125,9 @@ type Comptuer struct {
 	// Fallbacks to processor, which embeds all anonmous fields and sets name to field name.
 	// Note: path parameter may not be modified by this function.
 	FieldProcessorFactory FieldProcessorFactory
+
+	// Performs descriptor summarization.
+	Summarizer Summarizer
 
 	// Descriptor cache for each type.
 	// Used if not nil.
@@ -149,6 +166,7 @@ func (c *Comptuer) innerComputeDescriptor(
 		var field Field
 
 		structField := ty.Field(i)
+		field.Type = structField.Type
 
 		var options FieldOptions
 		options, err = fp.ProcessField(PendingFiled{
@@ -234,6 +252,16 @@ func (c *Comptuer) ComputeDescriptor(ctx context.Context, ty reflect.Type) (desc
 	err = c.innerComputeDescriptor(ctx, fp, []int{}, ty, &desc)
 	if err != nil {
 		return
+	}
+
+	if c.Summarizer != nil {
+		var summary interface{}
+		summary, err = c.Summarizer.SummaryzeDescriptor(ctx, desc)
+		if err != nil {
+			return
+		}
+
+		desc.ComputedSummary = summary
 	}
 	return
 }
