@@ -43,7 +43,8 @@ func (av NamedValues) IsSet(key string) bool {
 	if av == nil {
 		return false
 	}
-	return len(av[key]) > 0
+	_, ok := av[key]
+	return ok
 }
 
 func (av NamedValues) GetFirst(key string) string {
@@ -59,13 +60,20 @@ func (av NamedValues) GetFirst(key string) string {
 	return ""
 }
 
+func (av NamedValues) Count(key string) int {
+	if av == nil {
+		return 0
+	}
+
+	return len(av[key])
+}
+
 func (av NamedValues) Get(key string) []string {
 	if av == nil {
 		return nil
 	}
 
-	imm := av[key]
-	return imm
+	return av[key]
 }
 
 type SimpleParsedTag struct {
@@ -187,6 +195,8 @@ func (spo *SimpleParseOptions) Parse(tag string) (res SimpleParsedTag, err error
 			if !ok {
 				res.NamedValues[key] = nil
 			}
+		} else {
+			panic("unreachable code")
 		}
 
 	}
