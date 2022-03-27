@@ -2,7 +2,6 @@ package sttag
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"sync"
 
@@ -92,8 +91,6 @@ func (um *defaultUnmarshaler) Unmarshal(tag string, res interface{}) (err error)
 
 	for _, f := range desc.NameToField {
 		meta := f.Meta.(unmarshalTagsFieldMeta)
-
-		fmt.Printf("%+#v\n", meta)
 
 		if meta.AnonymousOffset >= 0 {
 			v := simple.AnonymousValues.Get(meta.AnonymousOffset)
