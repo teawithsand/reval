@@ -21,6 +21,10 @@ type defaultUnmarshaler struct {
 	computer *stdesc.Comptuer
 }
 
+type defaultUnmarshalerSummary struct {
+	anonCount int
+}
+
 // Unmarshaler, which uses default format.
 func NewDefaultUnmarshaler() *defaultUnmarshaler {
 	return &defaultUnmarshaler{
@@ -44,6 +48,24 @@ func NewDefaultUnmarshaler() *defaultUnmarshaler {
 
 				return
 			}),
+			Summarizer: stdesc.SummarizerFunc(func(ctx context.Context, desc stdesc.Descriptor) (meta interface{}, err error) {
+				anonCount := 0
+				for _, f := range desc.NameToField {
+					meta := f.Meta.(unmarshalTagsFieldMeta)
+					if meta.Skip {
+						continue
+					}
+
+					if meta.AnonymousOffset >= 0 {
+						anonCount += 1
+					}
+				}
+
+				meta = defaultUnmarshalerSummary{
+					anonCount: anonCount,
+				}
+				return
+			}),
 			Cache: &sync.Map{},
 		},
 	}
@@ -57,20 +79,10 @@ func (um *defaultUnmarshaler) Unmarshal(tag string, res interface{}) (err error)
 		return
 	}
 
-	anonCount := 0
-	for _, f := range desc.NameToField {
-		meta := f.Meta.(unmarshalTagsFieldMeta)
-		if meta.Skip {
-			continue
-		}
-
-		if meta.AnonymousOffset >= 0 {
-			anonCount += 1
-		}
-	}
+	summ := desc.ComputedSummary.(defaultUnmarshalerSummary)
 
 	opts := SimpleParseOptions{
-		AnonymousCount: anonCount,
+		AnonymousCount: summ.anonCount,
 	}
 
 	simple, err := opts.Parse(tag)
