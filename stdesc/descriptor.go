@@ -192,7 +192,7 @@ func (c *Computer) innerComputeDescriptor(
 						sf:    structField,
 					})
 				} else {
-					err = fmt.Errorf("reval/sdesc: can't embed non-struct or not pointer-to-struct field; path: %+#v", path)
+					err = fmt.Errorf("reval/stdesc: can't embed non-struct or not pointer-to-struct field; path: %+#v", path)
 					return
 				}
 			} else {
