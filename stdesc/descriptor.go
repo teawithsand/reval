@@ -14,7 +14,7 @@ func copyIndices(data []int) []int {
 }
 
 type Field struct {
-	Type reflect.Type // Field type, the most inner one, which can be acessed via get/set
+	Type reflect.Type // Field type, the most inner one, which can be accessed via get/set
 
 	Name string
 	Path []int // used to access fields via indexes, always at least one element in here
@@ -28,7 +28,7 @@ type Field struct {
 func (f *Field) MustGet(v reflect.Value) (res reflect.Value) {
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			panic("reval/sdesc: pointer to structure is nil")
+			panic("reval/stdesc: pointer to structure is nil")
 		}
 		v = v.Elem()
 	}
@@ -78,7 +78,7 @@ type FieldOptions struct {
 	Name  string
 	Meta  interface{}
 
-	Override bool // if true, and field with same name is set then overrides previous definiton in case it was set.
+	Override bool // if true, and field with same name is set then overrides previous definition in case it was set.
 }
 
 type PendingFiled struct {
@@ -122,7 +122,7 @@ func (f FieldProcessorFactoryFunc) MakeFieldProcessor(ctx context.Context, ty re
 }
 
 type Computer struct {
-	// Fallbacks to processor, which embeds all anonmous fields and sets name to field name.
+	// Fallbacks to processor, which embeds all anonymous fields and sets name to field name.
 	// Note: path parameter may not be modified by this function.
 	FieldProcessorFactory FieldProcessorFactory
 
@@ -153,7 +153,7 @@ func (c *Computer) innerComputeDescriptor(
 		}
 	}
 
-	// use this trick to embed fields of structure before embeded structure fields
+	// use this trick to embed fields of structure before embedded structure fields
 	var embedFields []struct {
 		index int
 		sf    reflect.StructField
